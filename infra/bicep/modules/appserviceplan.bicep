@@ -5,7 +5,7 @@ param name string
 param location string = resourceGroup().location
 
 @description('SKU for the App Service Plan')
-param skuName string = 'B1'
+param skuName string = 'S1'
 
 resource plan 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: name
