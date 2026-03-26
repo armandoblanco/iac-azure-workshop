@@ -19,7 +19,7 @@ on:
 
 env:
   BICEP_DIR: infra/bicep
-  LOCATION: eastus2
+  LOCATION: centralus
 
 permissions:
   id-token: write

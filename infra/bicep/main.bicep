@@ -4,7 +4,7 @@ targetScope = 'subscription'
 param prefix string = 'iacworkshop'
 
 @description('Azure region for deployment')
-param location string = 'eastus2'
+param location string = 'centralus'
 
 @description('Container image tag')
 param imageTag string = 'latest'
