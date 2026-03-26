@@ -12,12 +12,35 @@ public class BankService
     public BankService()
     {
         // Seed demo data
-        var customerId = Guid.NewGuid();
-        _customers[customerId] = new Customer(customerId, "Ana García", "ana.garcia@contoso.com", "+52-55-1234-5678");
+        var seedCustomers = new[]
+        {
+            ("Ana García",       "ana.garcia@contoso.com",       "+52-55-1234-5678"),
+            ("Carlos Mendoza",   "carlos.mendoza@contoso.com",   "+52-55-2345-6789"),
+            ("Laura Ramos",      "laura.ramos@contoso.com",      "+52-55-3456-7890"),
+            ("Miguel Torres",    "miguel.torres@contoso.com",    "+52-55-4567-8901"),
+            ("Sofía Herrera",    "sofia.herrera@contoso.com",    "+52-55-5678-9012"),
+        };
 
-        var accountId = Guid.NewGuid();
-        var accountNumber = $"ACC-{Interlocked.Increment(ref _accountCounter):D6}";
-        _accounts[accountId] = new Account(accountId, customerId, accountNumber, 15000.00m, AccountType.Savings);
+        var seedAccounts = new[]
+        {
+            (AccountType.Savings,  15000.00m),
+            (AccountType.Checking,  8500.50m),
+            (AccountType.Savings,  22000.00m),
+            (AccountType.Checking,  3200.75m),
+            (AccountType.Savings,  47500.00m),
+        };
+
+        for (int i = 0; i < seedCustomers.Length; i++)
+        {
+            var (name, email, phone) = seedCustomers[i];
+            var customerId = Guid.NewGuid();
+            _customers[customerId] = new Customer(customerId, name, email, phone);
+
+            var accountId = Guid.NewGuid();
+            var accountNumber = $"ACC-{Interlocked.Increment(ref _accountCounter):D6}";
+            var (type, balance) = seedAccounts[i];
+            _accounts[accountId] = new Account(accountId, customerId, accountNumber, balance, type);
+        }
     }
 
     // Customers
