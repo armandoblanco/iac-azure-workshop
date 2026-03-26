@@ -13,13 +13,10 @@ param containerImage string
 @description('ACR login server URL')
 param acrLoginServer string
 
-@description('ACR admin username')
-@secure()
-param acrUsername string
+@description('ACR resource name (used to fetch credentials)')
+param acrName string
 
-@description('ACR admin password')
-@secure()
-param acrPassword string
+var acrCreds = listCredentials(resourceId('Microsoft.ContainerRegistry/registries', acrName), '2023-07-01')
 
 resource appService 'Microsoft.Web/sites@2023-12-01' = {
   name: name
@@ -36,11 +33,11 @@ resource appService 'Microsoft.Web/sites@2023-12-01' = {
         }
         {
           name: 'DOCKER_REGISTRY_SERVER_USERNAME'
-          value: acrUsername
+          value: acrCreds.username
         }
         {
           name: 'DOCKER_REGISTRY_SERVER_PASSWORD'
-          value: acrPassword
+          value: acrCreds.passwords[0].value
         }
         {
           name: 'WEBSITES_ENABLE_APP_SERVICE_STORAGE'

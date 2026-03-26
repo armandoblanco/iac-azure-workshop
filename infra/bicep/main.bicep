@@ -51,8 +51,7 @@ module app 'modules/appservice.bicep' = {
     appServicePlanId: plan.outputs.planId
     containerImage: '${acr.outputs.acrLoginServer}/bankapi:${imageTag}'
     acrLoginServer: acr.outputs.acrLoginServer
-    acrUsername: acr.outputs.acrName
-    acrPassword: listCredentials(acr.outputs.acrId, '2023-07-01').passwords[0].value
+    acrName: acrName
   }
   dependsOn: [acr]
 }
