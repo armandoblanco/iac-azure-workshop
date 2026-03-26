@@ -34,7 +34,7 @@ jobs:
       - name: Get ACR Login Server
         id: acr
         run: |
-          acr_name=$(az acr list --query "[0].name" -o tsv)
+          acr_name=$(az acr list --resource-group rg-iacworkshop --query "[0].name" -o tsv)
           acr_server=$(az acr show --name $acr_name --query loginServer -o tsv)
           echo "server=$acr_server" >> $GITHUB_OUTPUT
           echo "name=$acr_name" >> $GITHUB_OUTPUT
@@ -50,18 +50,17 @@ jobs:
             -t ${{ steps.acr.outputs.server }}/${{ env.IMAGE_NAME }}:latest \
             .
 
-      - name: Push Image (main only)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Push Image (main or manual)
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
         run: |
           docker push ${{ steps.acr.outputs.server }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ steps.acr.outputs.server }}/${{ env.IMAGE_NAME }}:latest
 
       - name: Update App Service Image
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
         run: |
-          app_name=$(az webapp list --query "[0].name" -o tsv)
-          rg_name=$(az webapp list --query "[0].resourceGroup" -o tsv)
+          app_name=$(az webapp list --resource-group rg-iacworkshop --query "[0].name" -o tsv)
           az webapp config container set \
             --name $app_name \
-            --resource-group $rg_name \
+            --resource-group rg-iacworkshop \
             --container-image-name ${{ steps.acr.outputs.server }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
