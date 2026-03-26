@@ -5,7 +5,7 @@ param name string
 param location string = resourceGroup().location
 
 @allowed(['Basic', 'Standard', 'Premium'])
-param sku string = 'Basic'
+param sku string = 'Standard'
 
 resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
   name: name
