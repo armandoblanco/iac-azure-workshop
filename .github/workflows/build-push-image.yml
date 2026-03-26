@@ -1,0 +1,67 @@
+name: "CI: Build & Push Container Image"
+
+on:
+  push:
+    branches: [main]
+    paths: ["src/**"]
+  pull_request:
+    branches: [main]
+    paths: ["src/**"]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  IMAGE_NAME: bankapi
+
+jobs:
+  build-and-push:
+    name: "Build & Push"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get ACR Login Server
+        id: acr
+        run: |
+          acr_name=$(az acr list --query "[0].name" -o tsv)
+          acr_server=$(az acr show --name $acr_name --query loginServer -o tsv)
+          echo "server=$acr_server" >> $GITHUB_OUTPUT
+          echo "name=$acr_name" >> $GITHUB_OUTPUT
+
+      - name: Login to ACR
+        run: az acr login --name ${{ steps.acr.outputs.name }}
+
+      - name: Build & Tag Image
+        working-directory: src/BankApi
+        run: |
+          docker build \
+            -t ${{ steps.acr.outputs.server }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -t ${{ steps.acr.outputs.server }}/${{ env.IMAGE_NAME }}:latest \
+            .
+
+      - name: Push Image (main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          docker push ${{ steps.acr.outputs.server }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ steps.acr.outputs.server }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Update App Service Image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          app_name=$(az webapp list --query "[0].name" -o tsv)
+          rg_name=$(az webapp list --query "[0].resourceGroup" -o tsv)
+          az webapp config container set \
+            --name $app_name \
+            --resource-group $rg_name \
+            --container-image-name ${{ steps.acr.outputs.server }}/${{ env.IMAGE_NAME }}:${{ github.sha }}

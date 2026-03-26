@@ -1,0 +1,23 @@
+# ── .NET ──
+bin/
+obj/
+*.user
+*.suo
+
+# ── Terraform ──
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.*
+infra/terraform/*.tfplan
+infra/terraform/tfplan
+infra/terraform/.terraform.lock.hcl
+
+# ── IDE ──
+.vs/
+.vscode/
+*.swp
+.idea/
+
+# ── OS ──
+.DS_Store
+Thumbs.db
