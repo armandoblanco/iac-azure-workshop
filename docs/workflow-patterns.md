@@ -1,54 +1,54 @@
-# Workflow Patterns Explained
+# Patrones de Workflow Explicados
 
-## Pattern: Plan-on-PR, Deploy-on-Merge
+## Patrón: Plan en PR, Despliegue en Merge
 
-This is the core pattern of the workshop. It mirrors how code review works, but for infrastructure:
+Este es el patrón central del workshop. Refleja cómo funciona la revisión de código, pero aplicado a infraestructura:
 
 ```
-Developer makes IaC change
+El desarrollador realiza un cambio de IaC
         │
         ▼
-Opens Pull Request ──→ Workflow runs Plan/What-If
+Abre Pull Request ──→ Workflow ejecuta Plan/What-If
         │                       │
         │               ┌───────▼───────┐
-        │               │ PR Comment:   │
-        │               │ "Will create  │
-        │               │  3 resources, │
-        │               │  modify 1"    │
+        │               │ Comentario PR:│
+        │               │ "Creará       │
+        │               │  3 recursos,  │
+        │               │  modificará 1"│
         │               └───────────────┘
         │
-Reviewer reads PR + Plan output
+El revisor lee el PR + la salida del Plan
         │
         ▼
-Approves and merges ──→ Workflow runs Deploy/Apply
+Aprueba y hace merge ──→ Workflow ejecuta Deploy/Apply
                                 │
                         ┌───────▼───────┐
-                        │  Resources    │
-                        │  deployed     │
-                        │  in Azure     │
+                        │  Recursos     │
+                        │  desplegados  │
+                        │  en Azure     │
                         └───────────────┘
 ```
 
-### Why This Matters
+### Por Qué Esto Importa
 
-Without this pattern, you discover what your IaC will do AFTER it runs. That means broken infrastructure, unexpected costs, or accidental deletion of production resources. The Plan-on-PR pattern shifts that discovery to code review time.
+Sin este patrón, descubres lo que hará tu IaC DESPUÉS de que se ejecute. Eso significa infraestructura rota, costos inesperados o eliminación accidental de recursos de producción. El patrón Plan-on-PR desplaza ese descubrimiento al momento de la revisión de código.
 
-## Pattern: Path-Filtered Triggers
+## Patrón: Disparadores Filtrados por Ruta
 
-Each workflow uses `paths` filters to only trigger when relevant files change:
+Cada workflow usa filtros `paths` para activarse solo cuando cambian archivos relevantes:
 
 ```yaml
 on:
   push:
     branches: [main]
-    paths: ["infra/bicep/**"]     # Only Bicep changes trigger this
+    paths: ["infra/bicep/**"]     # Solo los cambios de Bicep activan esto
 ```
 
-This prevents the Bicep workflow from running when you change Terraform files and vice versa. It also means application code changes (`src/`) only trigger the build workflow, not the infrastructure workflows.
+Esto evita que el workflow de Bicep se ejecute cuando cambias archivos de Terraform y viceversa. También significa que los cambios en el código de la aplicación (`src/`) solo activan el workflow de build, no los de infraestructura.
 
-## Pattern: Workflow Dispatch for Manual Control
+## Patrón: Workflow Dispatch para Control Manual
 
-Every workflow includes `workflow_dispatch` which adds a "Run workflow" button in the Actions tab:
+Cada workflow incluye `workflow_dispatch`, que agrega un botón "Run workflow" en la pestaña de Actions:
 
 ```yaml
 on:
@@ -62,13 +62,13 @@ on:
           - destroy
 ```
 
-This serves two purposes:
-1. **Workshop**: Participants can trigger workflows manually to understand each step
-2. **Operations**: Teams can run ad-hoc plans or destroy environments without pushing code
+Esto cumple dos propósitos:
+1. **Workshop**: Los participantes pueden activar workflows manualmente para entender cada paso
+2. **Operaciones**: Los equipos pueden ejecutar planes ad-hoc o destruir entornos sin hacer push de código
 
-## Pattern: Environment Protection Rules
+## Patrón: Reglas de Protección de Entorno
 
-The deploy/apply jobs declare `environment: production`:
+Los jobs de deploy/apply declaran `environment: production`:
 
 ```yaml
 deploy:
@@ -76,17 +76,17 @@ deploy:
   # ...
 ```
 
-This does three things:
-1. Requires approval from designated reviewers before the job executes
-2. Uses the environment-specific OIDC federated credential
-3. Creates an audit log of who approved each deployment
+Esto hace tres cosas:
+1. Requiere aprobación de revisores designados antes de que el job se ejecute
+2. Usa la credencial federada OIDC específica del entorno
+3. Crea un registro de auditoría de quién aprobó cada despliegue
 
-## Pattern: Artifact Passing (Terraform)
+## Patrón: Paso de Artefactos (Terraform)
 
-The Terraform workflow uploads the plan as an artifact and downloads it in the apply job:
+El workflow de Terraform sube el plan como artefacto y lo descarga en el job de apply:
 
 ```
-Plan Job                          Apply Job
+Job Plan                          Job Apply
    │                                 │
    ├── terraform plan -out=tfplan    │
    ├── upload-artifact (tfplan)      │
@@ -98,9 +98,9 @@ Plan Job                          Apply Job
    │         │         tfplan        │
 ```
 
-This guarantees that what was approved in the plan is exactly what gets applied. Without this, a new commit between plan and apply could change the outcome.
+Esto garantiza que lo que fue aprobado en el plan es exactamente lo que se aplica. Sin esto, un nuevo commit entre el plan y el apply podría cambiar el resultado.
 
-## Pattern: Concurrency Locks (Terraform)
+## Patrón: Bloqueos de Concurrencia (Terraform)
 
 ```yaml
 concurrency:
@@ -108,13 +108,13 @@ concurrency:
   cancel-in-progress: false
 ```
 
-Terraform state supports one writer at a time. The concurrency setting queues parallel runs instead of running them simultaneously (which would cause state lock errors) or cancelling them (which could leave state in a bad place).
+El estado de Terraform admite un solo escritor a la vez. La configuración de concurrencia pone en cola las ejecuciones paralelas en lugar de ejecutarlas simultáneamente (lo que causaría errores de bloqueo de estado) o cancelarlas (lo que podría dejar el estado en mal estado).
 
-## Pattern: Bicep Default, Terraform Opt-In
+## Patrón: Bicep por Defecto, Terraform Opt-In
 
-The workshop enables Bicep workflows by default because:
-- No state backend to configure
-- No additional tooling to install
-- Simpler operational model for Azure-only deployments
+El workshop habilita los workflows de Bicep por defecto porque:
+- No requiere configurar un backend de estado
+- No requiere instalar herramientas adicionales
+- Modelo operativo más simple para despliegues solo en Azure
 
-Terraform triggers are commented out and can be enabled by the participant. This design lets beginners focus on the workflow pattern without the overhead of state management, while giving advanced users the full Terraform experience.
+Los disparadores de Terraform están comentados y pueden ser habilitados por el participante. Este diseño permite a los principiantes centrarse en el patrón de workflow sin la sobrecarga de la gestión de estado, mientras ofrece a los usuarios avanzados la experiencia completa de Terraform.
